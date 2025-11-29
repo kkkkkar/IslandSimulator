@@ -9,7 +9,7 @@ Animal {
 
     Component.onCompleted: {
         rate = 2;
-        imageSource = "../images/nonamen.png";
+        imageSource = "../images/rabbit.png";
     }
 
     // Метод размножения

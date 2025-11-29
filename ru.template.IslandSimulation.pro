@@ -25,6 +25,6 @@ TRANSLATIONS += \
     translations/ru.template.IslandSimulation-ru.ts \
 
 OTHER_FILES += \
-    qml/images/nonamen.png \
     qml/components/Animal.qml \
-    qml/components/Rabbit.qml
+    qml/components/Rabbit.qml \
+    qml/images/rabbit.png

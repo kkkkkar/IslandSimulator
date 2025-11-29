@@ -91,6 +91,186 @@ Page {
                     }
                 }
 
+                function createWolf(x, y) {
+                    console.log("Создаем волка в позиции:", x, y);
+                    var component = Qt.createComponent("../components/WolfMale.qml");
+
+                    if (component.status === Component.Ready) {
+                        var wolf = component.createObject(animalsContainer, {
+                            "x_pos": x,
+                            "y_pos": y,
+                            "maxX": cellsGrid.columns,
+                            "maxY": cellsGrid.rows,
+                            "width": cellsGrid.cellSize,
+                            "height": cellsGrid.cellSize
+                        });
+
+                        if (wolf) {
+                            updateAnimalPosition(wolf);
+                            animals.push(wolf);
+                            console.log("Волк создан");
+                        }
+                        return wolf;
+                    } else {
+                        console.log("Ошибка загрузки компонента Wolf.qml:", component.errorString());
+                        return null;
+                    }
+                }
+
+                function createWolfFemale(x, y) {
+                    console.log("Создаем волчицу в позиции:", x, y);
+                    var component = Qt.createComponent("../components/WolfFemale.qml");
+
+                    if (component.status === Component.Ready) {
+                        var wolfFemale = component.createObject(animalsContainer, {
+                            "x_pos": x,
+                            "y_pos": y,
+                            "maxX": cellsGrid.columns,
+                            "maxY": cellsGrid.rows,
+                            "width": cellsGrid.cellSize,
+                            "height": cellsGrid.cellSize
+                        });
+
+                        if (wolfFemale) {
+                            updateAnimalPosition(wolfFemale);
+                            animals.push(wolfFemale);
+                            console.log("Волчица создана");
+                        }
+                        return wolfFemale;
+                    } else {
+                        console.log("Ошибка загрузки компонента WolfFemale.qml:", component.errorString());
+                        return null;
+                    }
+                }
+
+                // Функция для получения всех волков (обоих полов)
+                function getAllWolves() {
+                    var wolves = [];
+                    for (var i = 0; i < animals.length; i++) {
+                        var animal = animals[i];
+                        if (animal && (animal.gender === "male" || animal.gender === "female")) {
+                            wolves.push(animal);
+                        }
+                    }
+                    return wolves;
+                }
+
+                // Функция для получения волков определенного пола
+                function getWolvesByGender(gender) {
+                    var wolves = [];
+                    for (var i = 0; i < animals.length; i++) {
+                        var animal = animals[i];
+                        if (animal && animal.gender === gender) {
+                            wolves.push(animal);
+                        }
+                    }
+                    return wolves;
+                }
+
+                // Функция проверки размножения волков
+                function checkWolfReproduction() {
+                    var maleWolves = getWolvesByGender("male");
+                    var femaleWolves = getWolvesByGender("female");
+                    var newWolves = [];
+
+                    // Для каждой волчицы ищем волка в соседних клетках
+                    for (var i = 0; i < femaleWolves.length; i++) {
+                        var female = femaleWolves[i];
+
+                        // Проверяем, может ли волчица размножаться
+                        if (!female.canReproduce || !female.canReproduce()) continue;
+
+                        // Ищем волка в соседних клетках
+                        for (var j = 0; j < maleWolves.length; j++) {
+                            var male = maleWolves[j];
+
+                            // Проверяем, может ли волк размножаться
+                            if (!male.canReproduce || !male.canReproduce()) continue;
+
+                            // Проверяем, находятся ли в соседних клетках
+                            if (areNeighbors(female, male)) {
+                                // Шанс размножения 25%
+                                if (Math.random() < 0.25) {
+                                    console.log("Волки размножаются!");
+                                    var freeSpot = findFreeSpot(female.x_pos, female.y_pos);
+                                    if (freeSpot) {
+                                        newWolves.push(freeSpot);
+
+                                        // Устанавливаем задержку размножения
+                                        female.setReproductionCooldown();
+                                        male.setReproductionCooldown();
+
+                                        break; // Одна волчица может размножиться только с одним волком за ход
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Создаем новых волков
+                    for (var k = 0; k < newWolves.length; k++) {
+                        // Случайно выбираем пол нового волка
+                        if (Math.random() < 0.5) {
+                            createWolf(newWolves[k].x, newWolves[k].y);
+                        } else {
+                            createWolfFemale(newWolves[k].x, newWolves[k].y);
+                        }
+                    }
+                }
+
+                // Функция проверки, находятся ли животные в соседних клетках
+                function areNeighbors(animal1, animal2) {
+                    var dx = Math.abs(animal1.x_pos - animal2.x_pos);
+                    var dy = Math.abs(animal1.y_pos - animal2.y_pos);
+                    return (dx <= 1 && dy <= 1 && !(dx === 0 && dy === 0));
+                }
+
+                // Функция уменьшения задержки размножения у всех волков
+                function decreaseWolfCooldowns() {
+                    var wolves = getAllWolves();
+                    for (var i = 0; i < wolves.length; i++) {
+                        if (wolves[i].decreaseCooldown) {
+                            wolves[i].decreaseCooldown();
+                        }
+                    }
+                }
+
+                // Функция для получения всех кроликов
+                function getAllRabbits() {
+                    var rabbits = [];
+                    for (var i = 0; i < animals.length; i++) {
+                        var animal = animals[i];
+                        // Проверяем, является ли животное кроликом по наличию метода reproduce
+                        if (animal && animal.reproduce) {
+                            rabbits.push(animal);
+                        }
+                    }
+                    return rabbits;
+                }
+
+
+                // Функция для поиска ближайшего зайца (для будущей реализации погони)
+//                function findNearestRabbit(wolfX, wolfY) {
+//                    var rabbits = getAllRabbits();
+//                    var nearestRabbit = null;
+//                    var minDistance = Infinity;
+
+//                    for (var i = 0; i < rabbits.length; i++) {
+//                        var rabbit = rabbits[i];
+//                        var distance = Math.sqrt(
+//                            Math.pow(rabbit.x_pos - wolfX, 2) +
+//                            Math.pow(rabbit.y_pos - wolfY, 2)
+//                        );
+
+//                        if (distance < minDistance) {
+//                            minDistance = distance;
+//                            nearestRabbit = rabbit;
+//                        }
+//                    }
+
+//                    return nearestRabbit;
+//                }
+
                 function updateAnimalPosition(animal) {
                     if (!animal) return;
 
@@ -114,27 +294,31 @@ Page {
                                 }
                             }
                         }
+                        animalsContainer.decreaseWolfCooldowns();
 
                         animalsContainer.checkReproduction();
+
+                        animalsContainer.checkWolfReproduction();
                     }
                 }
 
                 function checkReproduction() {
                     var newRabbits = [];
 
-                    for (var i = 0; i < animals.length; i++) {
-                        var rabbit = animals[i];
-                        if (rabbit && rabbit.reproduce) {
-                            var reproductionResult = rabbit.reproduce();
-                            if (reproductionResult !== null) {
-                                // Находим свободную соседнюю клетку
-                                var freeSpot = findFreeSpot(reproductionResult.x, reproductionResult.y);
-                                if (freeSpot) {
-                                    newRabbits.push(freeSpot);
-                                }
+                    // Проверяем размножение только у кроликов
+                    var rabbits = getAllRabbits();
+                    for (var i = 0; i < rabbits.length; i++) {
+                        var rabbit = rabbits[i];
+                        var reproductionResult = rabbit.reproduce();
+                        if (reproductionResult !== null) {
+                            var freeSpot = findFreeSpot(reproductionResult.x, reproductionResult.y);
+                            if (freeSpot) {
+                                newRabbits.push(freeSpot);
                             }
                         }
                     }
+
+                    // Создаем новых кроликов
                     for (var j = 0; j < newRabbits.length; j++) {
                         createRabbit(newRabbits[j].x, newRabbits[j].y);
                     }
@@ -179,6 +363,14 @@ Page {
                     // Создаем начальных кроликов
                     createRabbit(2, 3);
                     createRabbit(5, 7);
+
+                    // Создаем начальных волков
+                    createWolf(1,1);
+                    createWolf(9,16);
+
+                    // Создаем начальных волков
+                    createWolfFemale(1,3);
+                    createWolfFemale(9,10);
                 }
             }
         }
