@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=ru.template.IslandSimulation
+Exec=/usr/bin/ru.template.IslandSimulation
+Name=IslandSimulation
+Name[ru]=Симуляция острова
+
+[X-Application]
+Permissions=
+OrganizationName=ru.template
+ApplicationName=IslandSimulation
+ExecDBus=/usr/bin/ru.template.IslandSimulation

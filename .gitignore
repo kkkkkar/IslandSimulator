@@ -1,0 +1,24 @@
+# Build directories
+build-*/
+*.pro.user
+*.pro.user.*
+
+# Compiled files
+*.rpm
+*.o
+*.so
+*.a
+
+# Qt Creator
+.cproject
+.project
+.autotools
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+*~
+*.bak
