@@ -4,6 +4,110 @@ import Sailfish.Silica 1.0
 Page {
     id: simulationPage
 
+    // Панель статистики
+    Rectangle {
+        id: statsPanel
+        anchors {
+            top: parent.top
+            topMargin: Theme.paddingMedium
+            left: parent.left
+            leftMargin: Theme.paddingMedium
+            right: parent.right
+            rightMargin: Theme.paddingMedium
+        }
+        height: Theme.itemSizeExtraLarge
+        color: Theme.rgba(Theme.secondaryHighlightColor, 0.9)
+        radius: Theme.paddingMedium
+
+
+        Row {
+            anchors {
+                left: parent.left
+                leftMargin: Theme.paddingMedium
+                rightMargin: Theme.paddingMedium
+                verticalCenter: parent.verticalCenter
+            }
+            spacing: Theme.paddingLarge
+
+            // Счетчик кроликов
+            Column {
+                spacing: Theme.paddingSmall
+
+                Label {
+                    text: "Кролики 🐇:"
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    color: Theme.primaryColor
+                }
+
+                Label {
+                    id: rabbitCountLabel
+                    text: "0"
+                    font.pixelSize: Theme.fontSizeLarge // Крупнее
+                    color: "#2E8B57" // Зеленый
+                    font.bold: true
+                }
+            }
+
+            // Счетчик волков (муж)
+            Column {
+                spacing: Theme.paddingSmall
+
+                Label {
+                    text: "Волки 🐺♂:"
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    color: Theme.primaryColor
+                }
+
+                Label {
+                    id: wolfMaleCountLabel
+                    text: "0"
+                    font.pixelSize: Theme.fontSizeLarge // Крупнее
+                    color: "#8B4513" // Коричневый
+                    font.bold: true
+                }
+            }
+
+            // Счетчик волков (жен)
+            Column {
+                spacing: Theme.paddingSmall
+
+                Label {
+                    text: "Волчицы 🐺♀:"
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    color: Theme.primaryColor
+                }
+
+                Label {
+                    id: wolfFemaleCountLabel
+                    text: "0"
+                    font.pixelSize: Theme.fontSizeLarge
+                    color: "#A0522D" // Светло-коричневый
+                    font.bold: true
+                }
+            }
+
+            // Общее количество животных
+            Column {
+                spacing: Theme.paddingSmall
+
+                Label {
+                    text: "Всего:"
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    color: Theme.primaryColor
+                }
+
+                Label {
+                    id: totalCountLabel
+                    text: "0"
+                    font.pixelSize: Theme.fontSizeLarge // Крупнее
+                    color: Theme.highlightColor
+                    font.bold: true
+                }
+            }
+        }
+    }
+
+
     // Основной контейнер
     Column {
         anchors {
@@ -24,7 +128,7 @@ Page {
             Grid {
                 id: cellsGrid
                 anchors.centerIn: parent
-                rows: 18
+                rows: 14
                 columns: 10
                 spacing: 2
 
@@ -46,9 +150,9 @@ Page {
                         color: {
                             var row = Math.floor(index / cellsGrid.columns);
                             var col = index % cellsGrid.columns;
-                            return (row + col) % 2 === 0 ? "#77b570" : "#98FB98";
+                            return (row + col) % 2 === 0 ? "#83d487" : "#98FB98";
                         }
-                        border.color: "#2E8B57"
+                        border.color: "#81d6a6" // 2e8b57
                         border.width: 1
                         radius: 2
                     }
@@ -80,6 +184,7 @@ Page {
                         if (rabbit) {
                             updateAnimalPosition(rabbit);
                             animals.push(rabbit);
+                            updateStats(); // Обновляем статистику
 
                         } else {
                             console.log("Ошибка: не удалось создать объект кролика");
@@ -108,6 +213,7 @@ Page {
                         if (wolf) {
                             updateAnimalPosition(wolf);
                             animals.push(wolf);
+                            updateStats(); // Обновляем статистику
                             console.log("Волк создан");
                         }
                         return wolf;
@@ -134,6 +240,7 @@ Page {
                         if (wolfFemale) {
                             updateAnimalPosition(wolfFemale);
                             animals.push(wolfFemale);
+                            updateStats(); // Обновляем статистику
                             console.log("Волчица создана");
                         }
                         return wolfFemale;
@@ -167,6 +274,112 @@ Page {
                     return wolves;
                 }
 
+                // функция поедания зайцев волками
+                function checkWolfEating() {
+                    var wolves = getAllWolves();
+                    var rabbits = getAllRabbits();
+                    var rabbitsEaten = [];
+
+                    for (var i = 0; i < wolves.length; i++) {
+                        var wolf = wolves[i];
+
+                        // Проверяем, жив ли волк
+                        if (!wolf.isAlive) continue;
+
+                        // Ищем зайца рядом
+                        for (var j = 0; j < rabbits.length; j++) {
+                            var rabbit = rabbits[j];
+
+                            // Проверяем, являются ли соседями
+                            if (areNeighbors(wolf, rabbit)) {
+                                // Двигаем волка на клетку зайца
+                                wolf.x_pos = rabbit.x_pos;
+                                wolf.y_pos = rabbit.y_pos;
+
+                                // Волк ест зайца
+                                if (wolf.eatRabbit) {
+                                    wolf.eatRabbit();
+                                }
+
+                                // Помечаем зайца на удаление
+                                rabbitsEaten.push(j);
+
+                                console.log("Волк съел зайца в клетке:",
+                                           rabbit.x_pos, rabbit.y_pos);
+                                break; // Волк может съесть только одного зайца за ход
+                            }
+                        }
+                    }
+
+                    // Удаляем съеденных зайцев
+                    removeEatenRabbits(rabbitsEaten);
+                }
+
+                // Функция удаления съеденных зайцев
+                function removeEatenRabbits(rabbitIndices) {
+                    // Сортируем индексы по убыванию для правильного удаления
+                    rabbitIndices.sort(function(a, b) { return b - a; });
+
+                    for (var i = 0; i < rabbitIndices.length; i++) {
+                        var index = rabbitIndices[i];
+                        if (index >= 0 && index < getAllRabbits().length) {
+                            var rabbits = getAllRabbits();
+                            var globalIndex = findAnimalIndex(rabbits[index]);
+
+                            if (globalIndex !== -1) {
+                                var rabbit = animals[globalIndex];
+                                if (rabbit) {
+                                    rabbit.destroy(); // Удаляем визуально
+                                }
+                                animals.splice(globalIndex, 1); // Удаляем из массива
+                            }
+                        }
+                    }
+                }
+
+                // Функция уменьшения времени жизни у волков
+                function decreaseWolfLifetimes() {
+                    var wolves = getAllWolves();
+                    var deadWolves = [];
+
+                    for (var i = 0; i < wolves.length; i++) {
+                        var wolf = wolves[i];
+                        if (wolf.decreaseLifetime && wolf.decreaseLifetime()) {
+                            // Волк умер
+                            deadWolves.push(i);
+                            console.log("Волк умер от старости");
+                        }
+                    }
+
+                    // Удаляем умерших волков
+                    removeDeadWolves(deadWolves);
+                }
+
+                // Функция удаления умерших волков
+                function removeDeadWolves(wolfIndices) {
+                    wolfIndices.sort(function(a, b) { return b - a; });
+
+                    for (var i = 0; i < wolfIndices.length; i++) {
+                        var index = wolfIndices[i];
+                        if (index >= 0 && index < animals.length) {
+                            var wolf = animals[index];
+                            if (wolf) {
+                                wolf.destroy();
+                            }
+                            animals.splice(index, 1);
+                        }
+                    }
+                }
+                // Вспомогательная функция для поиска индекса животного в общем массиве
+                function findAnimalIndex(animalToFind) {
+                    for (var i = 0; i < animals.length; i++) {
+                        if (animals[i] === animalToFind) {
+                            return i;
+                        }
+                    }
+                    return -1;
+                }
+
                 // Функция проверки размножения волков
                 function checkWolfReproduction() {
                     var maleWolves = getWolvesByGender("male");
@@ -177,30 +390,23 @@ Page {
                     for (var i = 0; i < femaleWolves.length; i++) {
                         var female = femaleWolves[i];
 
-                        // Проверяем, может ли волчица размножаться
-                        if (!female.canReproduce || !female.canReproduce()) continue;
+                        if (!female.isAlive) continue;
 
                         // Ищем волка в соседних клетках
                         for (var j = 0; j < maleWolves.length; j++) {
                             var male = maleWolves[j];
 
-                            // Проверяем, может ли волк размножаться
-                            if (!male.canReproduce || !male.canReproduce()) continue;
+                            if (!male.isAlive) continue;
 
                             // Проверяем, находятся ли в соседних клетках
                             if (areNeighbors(female, male)) {
-                                // Шанс размножения 25%
-                                if (Math.random() < 0.25) {
+                                if (Math.random() < 0.35) {
                                     console.log("Волки размножаются!");
+                                    // возможно нужно переделать и создавтать волка не рядом с родаками
                                     var freeSpot = findFreeSpot(female.x_pos, female.y_pos);
                                     if (freeSpot) {
-                                        newWolves.push(freeSpot);
-
-                                        // Устанавливаем задержку размножения
-                                        female.setReproductionCooldown();
-                                        male.setReproductionCooldown();
-
-                                        break; // Одна волчица может размножиться только с одним волком за ход
+                                       newWolves.push(freeSpot);
+                                       break; // Одна волчица может размножиться только с одним волком за ход
                                     }
                                 }
                             }
@@ -217,22 +423,12 @@ Page {
                         }
                     }
                 }
-
+                
                 // Функция проверки, находятся ли животные в соседних клетках
                 function areNeighbors(animal1, animal2) {
                     var dx = Math.abs(animal1.x_pos - animal2.x_pos);
                     var dy = Math.abs(animal1.y_pos - animal2.y_pos);
                     return (dx <= 1 && dy <= 1 && !(dx === 0 && dy === 0));
-                }
-
-                // Функция уменьшения задержки размножения у всех волков
-                function decreaseWolfCooldowns() {
-                    var wolves = getAllWolves();
-                    for (var i = 0; i < wolves.length; i++) {
-                        if (wolves[i].decreaseCooldown) {
-                            wolves[i].decreaseCooldown();
-                        }
-                    }
                 }
 
                 // Функция для получения всех кроликов
@@ -249,28 +445,6 @@ Page {
                 }
 
 
-                // Функция для поиска ближайшего зайца (для будущей реализации погони)
-//                function findNearestRabbit(wolfX, wolfY) {
-//                    var rabbits = getAllRabbits();
-//                    var nearestRabbit = null;
-//                    var minDistance = Infinity;
-
-//                    for (var i = 0; i < rabbits.length; i++) {
-//                        var rabbit = rabbits[i];
-//                        var distance = Math.sqrt(
-//                            Math.pow(rabbit.x_pos - wolfX, 2) +
-//                            Math.pow(rabbit.y_pos - wolfY, 2)
-//                        );
-
-//                        if (distance < minDistance) {
-//                            minDistance = distance;
-//                            nearestRabbit = rabbit;
-//                        }
-//                    }
-
-//                    return nearestRabbit;
-//                }
-
                 function updateAnimalPosition(animal) {
                     if (!animal) return;
 
@@ -279,14 +453,57 @@ Page {
 
                 }
 
+                // Функции для подсчета животных
+                function countRabbits() {
+                    var count = 0;
+                    for (var i = 0; i < animals.length; i++) {
+                        if (animals[i] && animals[i].reproduce) {
+                            count++;
+                        }
+                    }
+                    return count;
+                }
+
+                function countMaleWolves() {
+                    var count = 0;
+                    for (var i = 0; i < animals.length; i++) {
+                        if (animals[i] && animals[i].gender === "male") {
+                            count++;
+                        }
+                    }
+                    return count;
+                }
+
+                function countFemaleWolves() {
+                    var count = 0;
+                    for (var i = 0; i < animals.length; i++) {
+                        if (animals[i] && animals[i].gender === "female") {
+                            count++;
+                        }
+                    }
+                    return count;
+                }
+
+                function countTotalAnimals() {
+                    return animals.length;
+                }
+
+                // Функция обновления счетчиков
+                function updateStats() {
+                    rabbitCountLabel.text = countRabbits();
+                    wolfMaleCountLabel.text = countMaleWolves();
+                    wolfFemaleCountLabel.text = countFemaleWolves();
+                    totalCountLabel.text = countTotalAnimals();
+                }
+
                 // Таймер для движения
                 Timer {
-                    interval: 1000
+                    id: movementTimer
+                    interval: 1100
                     running: true
                     repeat: true
                     onTriggered: {
                         for (var i = 0; i < animalsContainer.animals.length; i++) {
-                            console.log("тайм сработал, животных: ", animalsContainer.animals.length)
                             var animal = animalsContainer.animals[i];
                             if (animal && animal.move) {
                                 if (animal.move()) {
@@ -294,11 +511,19 @@ Page {
                                 }
                             }
                         }
-                        animalsContainer.decreaseWolfCooldowns();
+
+                        // Волки едят зайцев
+                        animalsContainer.checkWolfEating();
+
+                        // Уменьшаем время жизни волков
+                        animalsContainer.decreaseWolfLifetimes();
 
                         animalsContainer.checkReproduction();
 
                         animalsContainer.checkWolfReproduction();
+
+                        // Обновляем счетчики
+                        animalsContainer.updateStats();
                     }
                 }
 
@@ -366,19 +591,69 @@ Page {
 
                     // Создаем начальных волков
                     createWolf(1,1);
-                    createWolf(9,16);
+                    createWolf(9,13);
 
                     // Создаем начальных волков
                     createWolfFemale(1,3);
                     createWolfFemale(9,10);
+
+                    // Инициализируем счетчики
+                    updateStats();
                 }
             }
         }
 
+
+        // Кнопки управления скоростью анимации
+        Row {
+            anchors {
+                top: statsPanel.bottom
+                topMargin: Theme.paddingMedium // Отступ сверху
+                left: parent.left
+                leftMargin: Theme.paddingMedium // Отступ слева
+                right: parent.right
+                rightMargin: Theme.paddingMedium // Отступ справа
+            }
+
+            Button {
+                id: slower
+                text: "Медленнее ⏪"
+                preferredWidth: Screen.width / 3.5
+                onClicked: {
+                    if (movementTimer.interval < 2000) {
+                        movementTimer.interval += 300
+                    }
+                }
+            }
+
+            // Кнопка паузы
+            Button {
+                id: pauseButton
+                text: movementTimer.running ? "пауза⏸️" : "воспр▶️"
+                preferredWidth: Screen.width / 3.5
+                anchors.left: slower.right
+                onClicked: {
+                    movementTimer.running = !movementTimer.running
+                }
+            }
+
+            Button {
+                id: faster
+                text: "Быстрее ⏩"
+                preferredWidth: Screen.width / 3.5
+                anchors.left: pauseButton.right
+                onClicked: {
+                    if (movementTimer.interval > 500) {
+                        movementTimer.interval -= 300
+                    }
+                }
+            }
+        }
         // Кнопка возврата
         Button {
             id: backButton
             anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
             text: "Назад"
             onClicked: pageStack.pop()
         }

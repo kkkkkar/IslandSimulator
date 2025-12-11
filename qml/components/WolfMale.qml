@@ -4,27 +4,31 @@ Animal {
     id: wolf
 
     property string gender: "male" // Мужской пол
-    property int reproductionCooldown: 0
+    property int lifetime: 20 // Время жизни волка
+    property bool isAlive: true
 
     Component.onCompleted: {
         rate = 3;
         imageSource = "../images/wolfB.png";
     }
 
-    // Пока двигается хаотично, как Animal
-    // Позже переопределим move() для погони за зайцами
 
-    function decreaseCooldown() {
-            if (reproductionCooldown > 0) {
-                reproductionCooldown--;
+    // Уменьшаем время жизни каждый ход
+    function decreaseLifetime() {
+        if (isAlive) {
+            lifetime--;
+            if (lifetime <= 0) {
+                isAlive = false;
+                return true; // Волк умер
             }
         }
+        return false;
+    }
 
-        function canReproduce() {
-            return reproductionCooldown === 0;
-        }
+    // Волк поедает зайца и получает +5 к жизни
+    function eatRabbit() {
+        lifetime += 5;
+        console.log("Волк поел зайца! Новая жизнь:", lifetime);
+    }
 
-        function setReproductionCooldown() {
-            reproductionCooldown = 4;
-        }
 }

@@ -1,15 +1,20 @@
 import QtQuick 2.0
 
 Animal {
-    id: wolfFemale
+    id: wolf
 
-    property string gender: "female" // Женский пол
+    property string gender: "not defined" //
     property int lifetime: 20 // Время жизни волчицы
     property bool isAlive: true
 
     Component.onCompleted: {
-        rate = 3;
-        imageSource = "../images/wolfG.png";
+        rate = 3;// зачем это?
+        if (gender == "female")
+            imageSource = "../images/wolfG.png";
+        else if (gender == "male")
+            imageSource = "../images/wolfB.png";
+        else
+            console.log("ошибка: пол волка не определен")
     }
     // Уменьшаем время жизни каждый ход
     function decreaseLifetime() {
@@ -30,3 +35,4 @@ Animal {
         }
 
 }
+
