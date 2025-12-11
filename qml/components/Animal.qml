@@ -4,7 +4,6 @@ import QtQuick 2.0
 Item {
     id: animal
 
-    property int rate: 1
     property int x_pos: 0
     property int y_pos: 0
     property string imageSource: ""

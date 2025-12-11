@@ -42,8 +42,8 @@ Page {
                 Label {
                     id: rabbitCountLabel
                     text: "0"
-                    font.pixelSize: Theme.fontSizeLarge // Крупнее
-                    color: "#2E8B57" // Зеленый
+                    font.pixelSize: Theme.fontSizeLarge
+                    color: "#2E8B57"
                     font.bold: true
                 }
             }
@@ -99,7 +99,7 @@ Page {
                 Label {
                     id: totalCountLabel
                     text: "0"
-                    font.pixelSize: Theme.fontSizeLarge // Крупнее
+                    font.pixelSize: Theme.fontSizeLarge
                     color: Theme.highlightColor
                     font.bold: true
                 }
@@ -152,7 +152,7 @@ Page {
                             var col = index % cellsGrid.columns;
                             return (row + col) % 2 === 0 ? "#83d487" : "#98FB98";
                         }
-                        border.color: "#81d6a6" // 2e8b57
+                        border.color: "#81d6a6"
                         border.width: 1
                         radius: 2
                     }
@@ -195,15 +195,15 @@ Page {
                         return null;
                     }
                 }
-
-                function createWolf(x, y) {
-                    console.log("Создаем волка в позиции:", x, y);
-                    var component = Qt.createComponent("../components/WolfMale.qml");
+                function createWolf (x, y, gender) {
+                    console.log("Создаем волка в позиции:", x, y, ", пол: ", gender);
+                    var component = Qt.createComponent("../components/Wolf.qml");
 
                     if (component.status === Component.Ready) {
                         var wolf = component.createObject(animalsContainer, {
                             "x_pos": x,
                             "y_pos": y,
+                            "gender": gender,
                             "maxX": cellsGrid.columns,
                             "maxY": cellsGrid.rows,
                             "width": cellsGrid.cellSize,
@@ -214,7 +214,7 @@ Page {
                             updateAnimalPosition(wolf);
                             animals.push(wolf);
                             updateStats(); // Обновляем статистику
-                            console.log("Волк создан");
+                            console.log("Волк ", gender, " создан");
                         }
                         return wolf;
                     } else {
@@ -223,32 +223,6 @@ Page {
                     }
                 }
 
-                function createWolfFemale(x, y) {
-                    console.log("Создаем волчицу в позиции:", x, y);
-                    var component = Qt.createComponent("../components/WolfFemale.qml");
-
-                    if (component.status === Component.Ready) {
-                        var wolfFemale = component.createObject(animalsContainer, {
-                            "x_pos": x,
-                            "y_pos": y,
-                            "maxX": cellsGrid.columns,
-                            "maxY": cellsGrid.rows,
-                            "width": cellsGrid.cellSize,
-                            "height": cellsGrid.cellSize
-                        });
-
-                        if (wolfFemale) {
-                            updateAnimalPosition(wolfFemale);
-                            animals.push(wolfFemale);
-                            updateStats(); // Обновляем статистику
-                            console.log("Волчица создана");
-                        }
-                        return wolfFemale;
-                    } else {
-                        console.log("Ошибка загрузки компонента WolfFemale.qml:", component.errorString());
-                        return null;
-                    }
-                }
 
                 // Функция для получения всех волков (обоих полов)
                 function getAllWolves() {
@@ -402,12 +376,11 @@ Page {
                             if (areNeighbors(female, male)) {
                                 if (Math.random() < 0.35) {
                                     console.log("Волки размножаются!");
-                                    // возможно нужно переделать и создавтать волка не рядом с родаками
-                                    var freeSpot = findFreeSpot(female.x_pos, female.y_pos);
-                                    if (freeSpot) {
-                                       newWolves.push(freeSpot);
-                                       break; // Одна волчица может размножиться только с одним волком за ход
-                                    }
+                                    var newx = getRandomInt(1,10)
+                                    var newy = getRandomInt(1, 14)
+                                    newWolves.push({x: newx, y: newy});
+                                    break; // Одна волчица может размножиться только с одним волком за ход
+
                                 }
                             }
                         }
@@ -417,11 +390,16 @@ Page {
                     for (var k = 0; k < newWolves.length; k++) {
                         // Случайно выбираем пол нового волка
                         if (Math.random() < 0.5) {
-                            createWolf(newWolves[k].x, newWolves[k].y);
+                            createWolf(newWolves[k].x, newWolves[k].y, "male");
                         } else {
-                            createWolfFemale(newWolves[k].x, newWolves[k].y);
+                            createWolf(newWolves[k].x, newWolves[k].y, "female");
                         }
                     }
+                }
+                function getRandomInt(min, max) {
+                    min = Math.ceil(min);
+                    max = Math.floor(max);
+                    return Math.floor(Math.random() * (max - min + 1)) + min;
                 }
                 
                 // Функция проверки, находятся ли животные в соседних клетках
@@ -453,7 +431,7 @@ Page {
 
                 }
 
-                // Функции для подсчета животных
+                // Функции для подсчета кроликов
                 function countRabbits() {
                     var count = 0;
                     for (var i = 0; i < animals.length; i++) {
@@ -586,16 +564,16 @@ Page {
                 Component.onCompleted: {
 
                     // Создаем начальных кроликов
-                    createRabbit(2, 3);
+                    createRabbit(5, 5);
                     createRabbit(5, 7);
 
                     // Создаем начальных волков
-                    createWolf(1,1);
-                    createWolf(9,13);
+                    createWolf(1,1, "male");
+                    createWolf(9,13, "male");
 
                     // Создаем начальных волков
-                    createWolfFemale(1,3);
-                    createWolfFemale(9,10);
+                    createWolf(1,3, "female");
+                    createWolf(9,10, "female");
 
                     // Инициализируем счетчики
                     updateStats();
