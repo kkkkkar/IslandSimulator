@@ -8,6 +8,7 @@ Animal {
     property bool isAlive: true
     property var targetRabbit: null // Цель для преследования
     property bool isRunningAfterRabbit: false
+    property bool hasMovedForEating: false
 
     Component.onCompleted: {
         if (gender == "female")
@@ -45,7 +46,7 @@ Animal {
                     y_pos = targetRabbit.y_pos;
                     targetRabbit = null;
                     isRunningAfterRabbit = false;
-                    return moveTowards(targetRabbit.x_pos, targetRabbit.y_pos);
+                    return true;
                 } else {
                     // Обычное случайное движение
                     targetRabbit = null;

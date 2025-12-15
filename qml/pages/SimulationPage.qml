@@ -249,6 +249,7 @@ Page {
                 }
 
                 // функция поедания зайцев волками
+                // функция поедания зайцев волками
                 function checkWolfEating() {
                     var wolves = getAllWolves();
                     var rabbits = getAllRabbits();
@@ -266,9 +267,17 @@ Page {
 
                             // Проверяем, являются ли соседями
                             if (areNeighbors(wolf, rabbit)) {
-                                // Двигаем волка на клетку зайца
+                                console.log("Волк рядом с зайцем:", wolf.x_pos, wolf.y_pos, "заяц:", rabbit.x_pos, rabbit.y_pos);
+
+                                // НЕПОСРЕДСТВЕННО перемещаем волка на клетку зайца
                                 wolf.x_pos = rabbit.x_pos;
                                 wolf.y_pos = rabbit.y_pos;
+
+                                // Устанавливаем флаг, что волк уже сделал ход
+                                wolf.hasMovedForEating = true;
+
+                                // Обновляем позицию волка ВИЗУАЛЬНО
+                                updateAnimalPosition(wolf);
 
                                 // Волк ест зайца
                                 if (wolf.eatRabbit) {
@@ -278,15 +287,12 @@ Page {
                                 // Помечаем зайца на удаление
                                 rabbitsEaten.push(j);
 
-                                console.log("Волк съел зайца в клетке:",
-                                           rabbit.x_pos, rabbit.y_pos);
+                                console.log("Волк съел зайца в клетке:", rabbit.x_pos, rabbit.y_pos);
                                 break; // Волк может съесть только одного зайца за ход
                             }
                         }
                     }
-
-                    // Удаляем съеденных зайцев
-                    removeEatenRabbits(rabbitsEaten);
+                    return rabbitsEaten;
                 }
 
                 // Функция удаления съеденных зайцев
@@ -406,7 +412,7 @@ Page {
                 function areNeighbors(animal1, animal2) {
                     var dx = Math.abs(animal1.x_pos - animal2.x_pos);
                     var dy = Math.abs(animal1.y_pos - animal2.y_pos);
-                    return (dx <= 1 && dy <= 1 && !(dx === 0 && dy === 0));
+                    return ((dx <= 1 && dy == 0) || (dx == 0 && dy <= 1));
                 }
 
                 // Функция для получения всех кроликов
@@ -481,8 +487,20 @@ Page {
                     running: true
                     repeat: true
                     onTriggered: {
+
+                        // Волки едят зайцев
+                        var rabsToKill = animalsContainer.checkWolfEating();
+
                         for (var i = 0; i < animalsContainer.animals.length; i++) {
                             var animal = animalsContainer.animals[i];
+
+                            // Пропускаем, если это волк, который уже сделал ход при поедании
+                            if (animal && animal.gender && animal.hasMovedForEating) {
+                                // Сбрасываем флаг для следующего хода
+                                animal.hasMovedForEating = false;
+                                continue;
+                            }
+
                             if (animal && animal.move) {
                                 if (animal.move()) {
                                     animalsContainer.updateAnimalPosition(animal);
@@ -490,8 +508,8 @@ Page {
                             }
                         }
 
-                        // Волки едят зайцев
-                        animalsContainer.checkWolfEating();
+                        // Удаляем съеденных зайцев
+                        animalsContainer.removeEatenRabbits(rabsToKill); // хз тут ли
 
                         // Уменьшаем время жизни волков
                         animalsContainer.decreaseWolfLifetimes();
@@ -569,7 +587,7 @@ Page {
 
                     // Создаем начальных волков
                     createWolf(1,1, "male");
-                    createWolf(9,13, "male");
+                    createWolf(6,6, "male");
 
                     // Создаем начальных волков
                     createWolf(1,3, "female");
