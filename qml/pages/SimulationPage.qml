@@ -1,8 +1,99 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
+
 Page {
     id: simulationPage
+
+    // Свойства для контроля популяции
+    property int maxAnimals: Math.floor(cellsGrid.columns * cellsGrid.rows * 0.7) // 70% от всех клеток
+    property bool simulationStopped: false
+    property string stopReason: ""
+
+    // Функция проверки перенаселения
+    function checkOverpopulation() {
+        var totalAnimals = countTotalAnimals();
+
+        if (totalAnimals >= maxAnimals) {
+            simulationStopped = true;
+            stopReason = "Перенаселение острова! Животных: " + totalAnimals + "/" + maxAnimals;
+            movementTimer.running = false;
+            console.log("Симуляция остановлена: " + stopReason);
+            return true;
+        }
+
+        // Проверка на вымирание
+        if (countRabbits() === 0 && (countMaleWolves() === 0 || countFemaleWolves() === 0)) {
+            simulationStopped = true;
+            stopReason = "Вымирание! Нет условий для продолжения симуляции";
+            movementTimer.running = false;
+            console.log("Симуляция остановлена: " + stopReason);
+            return true;
+        }
+
+        return false;
+    }
+
+
+    // Параметры начальной популяции
+    property int initialRabbits: 4
+    property int initialMaleWolves: 2
+    property int initialFemaleWolves: 2
+
+    // Панель остановки симуляции
+    Rectangle {
+        id: stopPanel
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+            margins: Theme.paddingMedium
+        }
+        height: Theme.itemSizeLarge
+        color: Theme.rgba(Theme.highlightBackgroundColor, 0.95)
+        radius: Theme.paddingMedium
+        visible: simulationStopped
+
+        Row {
+            anchors.centerIn: parent
+            spacing: Theme.paddingMedium
+
+            Icon {
+                source: "image://theme/icon-m-warning"
+                height: Theme.itemSizeSmall
+                width: height
+                color: Theme.highlightColor
+            }
+
+            Column {
+                spacing: Theme.paddingSmall
+
+                Label {
+                    text: simulationStopped ? "СИМУЛЯЦИЯ ОСТАНОВЛЕНА" : ""
+                    font.pixelSize: Theme.fontSizeMedium
+                    color: Theme.highlightColor
+                    font.bold: true
+                }
+
+                Label {
+                    text: stopReason
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.primaryColor
+                    width: stopPanel.width - Theme.itemSizeLarge
+                    wrapMode: Text.Wrap
+                    maximumLineCount: 2
+                }
+            }
+
+            Button {
+                text: "OK"
+                onClicked: {
+                    stopPanel.visible = false;
+                    pageStack.pop(); // Вернуться на главную
+                }
+            }
+        }
+    }
 
     // Панель статистики
     Rectangle {
@@ -165,6 +256,7 @@ Page {
                 anchors.fill: parent
 
                 property var animals: []
+
 
                 function createRabbit(x, y) {
                     console.log("Создаем кролика в позиции:", x, y);
@@ -487,6 +579,14 @@ Page {
                     running: true
                     repeat: true
                     onTriggered: {
+                        if (simulationStopped) {
+                            console.log("Симуляция остановлена, таймер не работает");
+                            return;
+                        }
+
+                        console.log("Ход симуляции, животных:", animalsContainer.animals.length);
+
+
 
                         // Волки едят зайцев
                         var rabsToKill = animalsContainer.checkWolfEating();
@@ -520,8 +620,14 @@ Page {
 
                         // Обновляем счетчики
                         animalsContainer.updateStats();
+
+                        // Проверяем условия остановки
+                        if (checkOverpopulation()) {
+                            console.log("Симуляция остановлена автоматически");
+                        }
                     }
                 }
+
 
                 function checkReproduction() {
                     var newRabbits = [];
@@ -579,21 +685,76 @@ Page {
                     return true;
                 }
 
+                function createInitialAnimals() {
+                    console.log("Создаем начальных животных:",
+                               initialRabbits, "кроликов,",
+                               initialMaleWolves, "волков-самцов,",
+                               initialFemaleWolves, "волков-самок");
+
+                    // Создаем кроликов в случайных позициях
+                    for (var i = 0; i < initialRabbits; i++) {
+                        var pos = findRandomFreeSpot();
+                        if (pos) {
+                            createRabbit(pos.x, pos.y);
+                        } else {
+                            console.log("Не удалось разместить кролика, нет свободных клеток");
+                        }
+                    }
+
+                    // Создаем волков-самцов
+                    for (var j = 0; j < initialMaleWolves; j++) {
+                        pos = findRandomFreeSpot();
+                        if (pos) {
+                            createWolf(pos.x, pos.y, "male");
+                        } else {
+                            console.log("Не удалось разместить волка-самца, нет свободных клеток");
+                        }
+                    }
+
+                    // Создаем волков-самок
+                    for (var k = 0; k < initialFemaleWolves; k++) {
+                        pos = findRandomFreeSpot();
+                        if (pos) {
+                            createWolf(pos.x, pos.y, "female");
+                        } else {
+                            console.log("Не удалось разместить волка-самку, нет свободных клеток");
+                        }
+                    }
+
+                    // Проверяем, что создали хотя бы некоторых животных
+                    if (animals.length === 0) {
+                        console.log("Не удалось создать ни одного животного!");
+                        // Создаем хотя бы одного кролика в центре
+                        createRabbit(Math.floor(cellsGrid.columns/2), Math.floor(cellsGrid.rows/2));
+                    }
+                }
+
+                // Функция поиска случайной свободной клетки
+                function findRandomFreeSpot() {
+                    var maxAttempts = 100; // Чтобы не зацикливаться
+                    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+                        var x = Math.floor(Math.random() * cellsGrid.columns);
+                        var y = Math.floor(Math.random() * cellsGrid.rows);
+
+                        if (isCellFree(x, y)) {
+                            return { x: x, y: y };
+                        }
+                    }
+
+                    // Если не нашли свободную клетку, ищем первую попавшуюся
+                    for (x = 0; x < cellsGrid.columns; x++) {
+                        for (y = 0; y < cellsGrid.rows; y++) {
+                            if (isCellFree(x, y)) {
+                                return { x: x, y: y };
+                            }
+                        }
+                    }
+
+                    return null; // Все клетки заняты
+                }
+
                 Component.onCompleted: {
-
-                    // Создаем начальных кроликов
-                    createRabbit(5, 5);
-                    createRabbit(5, 7);
-
-                    // Создаем начальных волков
-                    createWolf(1,1, "male");
-                    createWolf(6,6, "male");
-
-                    // Создаем начальных волков
-                    createWolf(1,3, "female");
-                    createWolf(9,10, "female");
-
-                    // Инициализируем счетчики
+                    createInitialAnimals();
                     updateStats();
                 }
             }
@@ -658,5 +819,11 @@ Page {
 
     Component.onCompleted: {
         console.log("SimulationPage загружена");
+
+        // Ждем 100мс, чтобы все компоненты успели инициализироваться
+            Qt.callLater(function() {
+                animalsContainer.createInitialAnimals();
+                animalsContainer.updateStats();
+            });
     }
 }
