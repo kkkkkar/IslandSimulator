@@ -1,38 +1,8 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-
 Page {
     id: simulationPage
-
-    // Свойства для контроля популяции
-    property int maxAnimals: Math.floor(cellsGrid.columns * cellsGrid.rows * 0.7) // 70% от всех клеток
-    property bool simulationStopped: false
-    property string stopReason: ""
-
-    // Функция проверки перенаселения
-    function checkOverpopulation() {
-        var totalAnimals = countTotalAnimals();
-
-        if (totalAnimals >= maxAnimals) {
-            simulationStopped = true;
-            stopReason = "Перенаселение острова! Животных: " + totalAnimals + "/" + maxAnimals;
-            movementTimer.running = false;
-            console.log("Симуляция остановлена: " + stopReason);
-            return true;
-        }
-
-        // Проверка на вымирание
-        if (countRabbits() === 0 && (countMaleWolves() === 0 || countFemaleWolves() === 0)) {
-            simulationStopped = true;
-            stopReason = "Вымирание! Нет условий для продолжения симуляции";
-            movementTimer.running = false;
-            console.log("Симуляция остановлена: " + stopReason);
-            return true;
-        }
-
-        return false;
-    }
 
 
     // Параметры начальной популяции
@@ -40,71 +10,14 @@ Page {
     property int initialMaleWolves: 2
     property int initialFemaleWolves: 2
 
-    // Панель остановки симуляции
-    Rectangle {
-        id: stopPanel
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-            margins: Theme.paddingMedium
-        }
-        height: Theme.itemSizeLarge
-        color: Theme.rgba(Theme.highlightBackgroundColor, 0.95)
-        radius: Theme.paddingMedium
-        visible: simulationStopped
-
-        Row {
-            anchors.centerIn: parent
-            spacing: Theme.paddingMedium
-
-            Icon {
-                source: "image://theme/icon-m-warning"
-                height: Theme.itemSizeSmall
-                width: height
-                color: Theme.highlightColor
-            }
-
-            Column {
-                spacing: Theme.paddingSmall
-
-                Label {
-                    text: simulationStopped ? "СИМУЛЯЦИЯ ОСТАНОВЛЕНА" : ""
-                    font.pixelSize: Theme.fontSizeMedium
-                    color: Theme.highlightColor
-                    font.bold: true
-                }
-
-                Label {
-                    text: stopReason
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.primaryColor
-                    width: stopPanel.width - Theme.itemSizeLarge
-                    wrapMode: Text.Wrap
-                    maximumLineCount: 2
-                }
-            }
-
-            Button {
-                text: "OK"
-                onClicked: {
-                    stopPanel.visible = false;
-                    pageStack.pop(); // Вернуться на главную
-                }
-            }
-        }
-    }
 
     // Панель статистики
     Rectangle {
         id: statsPanel
         anchors {
             top: parent.top
-            topMargin: Theme.paddingMedium
             left: parent.left
-            leftMargin: Theme.paddingMedium
             right: parent.right
-            rightMargin: Theme.paddingMedium
         }
         height: Theme.itemSizeExtraLarge
         color: Theme.rgba(Theme.secondaryHighlightColor, 0.9)
@@ -198,23 +111,69 @@ Page {
         }
     }
 
+    // Кнопки управления скоростью анимации
+    Row {
+        id: changeSpeed
+        anchors {
+            top: statsPanel.bottom
+            topMargin: Theme.paddingMedium // Отступ сверху
+            left: parent.left
+            leftMargin: Theme.paddingMedium // Отступ слева
+            right: parent.right
+            rightMargin: Theme.paddingMedium // Отступ справа
+        }
+
+        Button {
+            id: slower
+            text: "Медленнее ⏪"
+            preferredWidth: Screen.width / 3.5
+            onClicked: {
+                if (movementTimer.interval < 2000) {
+                    movementTimer.interval += 300
+                }
+            }
+        }
+
+        // Кнопка паузы
+        Button {
+            id: pauseButton
+            text: movementTimer.running ? "пауза⏸️" : "воспр▶️"
+            preferredWidth: Screen.width / 3.5
+            anchors.left: slower.right
+            onClicked: {
+                movementTimer.running = !movementTimer.running
+            }
+        }
+
+        Button {
+            id: faster
+            text: "Быстрее ⏩"
+            preferredWidth: Screen.width / 3.5
+            anchors.left: pauseButton.right
+            onClicked: {
+                if (movementTimer.interval > 500) {
+                    movementTimer.interval -= 300
+                }
+            }
+        }
+    }
+
 
     // Основной контейнер
     Column {
-        anchors {
-            top: parent.top
-            topMargin: Theme.itemSizeExtraLarge
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-        }
-        spacing: Theme.paddingLarge
+           width: parent.width
+           height: parent.height - Theme.itemSizeExtraLarge
+           anchors.top: parent.top
+           anchors.topMargin: Theme.itemSizeExtraLarge
+
+           spacing: Theme.paddingLarge
 
         // Контейнер для сетки клеток с отступами
         Item {
             id: gridContainer
             width: parent.width
             height: parent.height - backButton.height - parent.spacing
+
 
             Grid {
                 id: cellsGrid
@@ -256,6 +215,44 @@ Page {
                 anchors.fill: parent
 
                 property var animals: []
+
+                // Свойства для контроля популяции
+                property int maxAnimals: Math.floor(cellsGrid.columns * cellsGrid.rows * 0.7) // 70% от всех клеток
+                property bool simulationStopped: false
+                property string stopReason: ""
+
+                function countTotalAnimals() {
+                    return animals.length;
+                }
+
+                // Функция проверки перенаселения
+                function checkOverpopulation() {
+                    var totalAnimals = countTotalAnimals();
+
+                    if (totalAnimals >= maxAnimals) {
+                        simulationStopped = true;
+                        stopPanel.visible = true;
+                        backButton.visible = false;
+                        stopReason = "Перенаселение острова! Животных: " + totalAnimals + "/" + maxAnimals;
+                        movementTimer.running = false;
+                        console.log("Симуляция остановлена: " + stopReason);
+                        return true;
+                    }
+
+                    // Проверка на вымирание
+                    if (countRabbits() === 0 && (countMaleWolves() === 0 || countFemaleWolves() === 0)) {
+                        simulationStopped = true;
+                        stopPanel.visible = true;
+                        backButton.visible = false;
+                        stopReason = "Вымирание! Нет условий для продолжения симуляции";
+                        movementTimer.running = false;
+                        console.log("Симуляция остановлена: " + stopReason);
+                        return true;
+                    }
+
+                    return false;
+                }
+            //
 
 
                 function createRabbit(x, y) {
@@ -523,6 +520,9 @@ Page {
 
                 function updateAnimalPosition(animal) {
                     if (!animal) return;
+                    // Простая валидация координат
+                    animal.x_pos = Math.max(0, Math.min(animal.x_pos, cellsGrid.columns - 1)); //
+                    animal.y_pos = Math.max(0, Math.min(animal.y_pos, cellsGrid.rows - 1)); //
 
                     animal.x = cellsGrid.startX + animal.x_pos * (cellsGrid.cellSize + cellsGrid.spacing);
                     animal.y = cellsGrid.startY + animal.y_pos * (cellsGrid.cellSize + cellsGrid.spacing);
@@ -560,9 +560,7 @@ Page {
                     return count;
                 }
 
-                function countTotalAnimals() {
-                    return animals.length;
-                }
+
 
                 // Функция обновления счетчиков
                 function updateStats() {
@@ -572,6 +570,8 @@ Page {
                     totalCountLabel.text = countTotalAnimals();
                 }
 
+
+
                 // Таймер для движения
                 Timer {
                     id: movementTimer
@@ -579,7 +579,7 @@ Page {
                     running: true
                     repeat: true
                     onTriggered: {
-                        if (simulationStopped) {
+                        if (animalsContainer.simulationStopped) {
                             console.log("Симуляция остановлена, таймер не работает");
                             return;
                         }
@@ -609,7 +609,7 @@ Page {
                         }
 
                         // Удаляем съеденных зайцев
-                        animalsContainer.removeEatenRabbits(rabsToKill); // хз тут ли
+                        animalsContainer.removeEatenRabbits(rabsToKill);
 
                         // Уменьшаем время жизни волков
                         animalsContainer.decreaseWolfLifetimes();
@@ -622,7 +622,7 @@ Page {
                         animalsContainer.updateStats();
 
                         // Проверяем условия остановки
-                        if (checkOverpopulation()) {
+                        if (animalsContainer.checkOverpopulation()) {
                             console.log("Симуляция остановлена автоматически");
                         }
                     }
@@ -761,52 +761,79 @@ Page {
         }
 
 
-        // Кнопки управления скоростью анимации
-        Row {
+        // Панель остановки симуляции
+        Rectangle {
+            id: stopPanel
             anchors {
-                top: statsPanel.bottom
-                topMargin: Theme.paddingMedium // Отступ сверху
                 left: parent.left
-                leftMargin: Theme.paddingMedium // Отступ слева
                 right: parent.right
-                rightMargin: Theme.paddingMedium // Отступ справа
+                bottom: parent.bottom
+                margins: Theme.paddingMedium
             }
+            height: Theme.itemSizeLarge
+            color: Theme.rgba(Theme.highlightBackgroundColor, 0.95)
+            radius: Theme.paddingMedium
+            visible: animalsContainer.simulationStopped // Привязываемся к свойству animalsContainer
 
-            Button {
-                id: slower
-                text: "Медленнее ⏪"
-                preferredWidth: Screen.width / 3.5
-                onClicked: {
-                    if (movementTimer.interval < 2000) {
-                        movementTimer.interval += 300
+            Row {
+                anchors {
+                    verticalCenter: parent.verticalCenter
+                    left: parent.left
+                    leftMargin: Theme.paddingMedium
+                    right: parent.right
+                    rightMargin: Theme.paddingMedium
+                }
+                spacing: Theme.paddingMedium
+
+                // Иконка предупреждения
+                Icon {
+                    source: "image://theme/icon-m-warning"
+                    height: Theme.iconSizeMedium
+                    width: height
+                    color: Theme.highlightColor
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Текстовый блок
+                Column {
+                    width: parent.width - (Theme.iconSizeMedium + Theme.paddingMedium * 3 + okButton.width)
+                    spacing: Theme.paddingSmall
+
+                    Label {
+                        width: parent.width
+                        text: animalsContainer.simulationStopped ? "СИМУЛЯЦИЯ ОСТАНОВЛЕНА" : ""
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.highlightColor
+                        font.bold: true
+                        wrapMode: Text.Wrap
+                        horizontalAlignment: Text.AlignLeft
+                    }
+
+                    Label {
+                        width: parent.width
+                        text: animalsContainer.stopReason
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: Theme.primaryColor
+                        wrapMode: Text.Wrap
+                        maximumLineCount: 2
+                        horizontalAlignment: Text.AlignLeft
                     }
                 }
-            }
 
-            // Кнопка паузы
-            Button {
-                id: pauseButton
-                text: movementTimer.running ? "пауза⏸️" : "воспр▶️"
-                preferredWidth: Screen.width / 3.5
-                anchors.left: slower.right
-                onClicked: {
-                    movementTimer.running = !movementTimer.running
-                }
-            }
-
-            Button {
-                id: faster
-                text: "Быстрее ⏩"
-                preferredWidth: Screen.width / 3.5
-                anchors.left: pauseButton.right
-                onClicked: {
-                    if (movementTimer.interval > 500) {
-                        movementTimer.interval -= 300
+                // Кнопка OK
+                Button {
+                    id: okButton
+                    text: "OK"
+                    width: Theme.itemSizeMedium
+                    anchors.verticalCenter: parent.verticalCenter
+                    onClicked: {
+                        animalsContainer.simulationStopped = false; // Сбрасываем флаг
+                        pageStack.pop(); // Вернуться на главную
                     }
                 }
             }
         }
-        // Кнопка возврата
+        // Кнопка возврата если simstopped то невидима
         Button {
             id: backButton
             anchors.horizontalCenter: parent.horizontalCenter
@@ -820,10 +847,13 @@ Page {
     Component.onCompleted: {
         console.log("SimulationPage загружена");
 
-        // Ждем 100мс, чтобы все компоненты успели инициализироваться
+        // Отложенное создание животных через небольшой таймер
             Qt.callLater(function() {
                 animalsContainer.createInitialAnimals();
                 animalsContainer.updateStats();
             });
+
+
+
     }
 }
