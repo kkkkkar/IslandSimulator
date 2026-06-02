@@ -7,10 +7,8 @@ Item {
     property int x_pos: 0
     property int y_pos: 0
     property string imageSource: ""
-    property int maxX: 12
-    property int maxY: 20
-    width: 50 // размеры указаны на случай, если в основном коде они не будут явно определены
-    height: 50
+    property int maxX: 0 // размеры поля, передаются из simulationPage
+    property int maxY: 0 //
 
     Image {
         id: animalImage

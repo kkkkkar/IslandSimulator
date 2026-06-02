@@ -6,8 +6,8 @@ Animal {
     property string gender: "not defined"
     property int lifetime: 20
     property bool isAlive: true
-    property var targetRabbit: null // Цель для преследования
-    property bool isRunningAfterRabbit: false
+    //property var targetRabbit: null // Цель для преследования
+    //property bool isRunningAfterRabbit: false
     property bool hasMovedForEating: false
 
     Component.onCompleted: {
@@ -33,27 +33,27 @@ Animal {
     // Волк поедает зайца и получает +5 к жизни
         function eatRabbit() {
             lifetime += 5;
-            console.log("Волк поел зайца! Новая жизнь:", lifetime);
+            console.log("Волк съел зайца! кол-во очков:", lifetime);
         }
 
-        // Движение волка с учетом преследования
-            function chaseMove() {
-                if (!isAlive) return false;
+//        // Движение волка с учетом преследования
+//            function chaseMove() {
+//                if (!isAlive) return false;
 
-                // Если есть цель и она еще жива
-                if (targetRabbit && targetRabbit.x_pos !== undefined) {
-                    x_pos = targetRabbit.x_pos;
-                    y_pos = targetRabbit.y_pos;
-                    targetRabbit = null;
-                    isRunningAfterRabbit = false;
-                    return true;
-                } else {
-                    // Обычное случайное движение
-                    targetRabbit = null;
-                    isRunningAfterRabbit = false;
-                    return move();
-                }
-            }
+//                // Если есть цель и она еще жива
+//                if (targetRabbit && targetRabbit.x_pos !== undefined) {
+//                    x_pos = targetRabbit.x_pos;
+//                    y_pos = targetRabbit.y_pos;
+//                    targetRabbit = null;
+//                    isRunningAfterRabbit = false;
+//                    return true;
+//                } else {
+//                    // Обычное случайное движение
+//                    targetRabbit = null;
+//                    isRunningAfterRabbit = false;
+//                    return move();
+//                }
+//            }
 
 }
 

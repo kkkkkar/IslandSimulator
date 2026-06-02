@@ -17,7 +17,6 @@ Page {
         anchors {
             left: parent.left
             right: parent.right
-          //  bottom: parent.bottom
         }
         width: parent.width
         height: parent.height
@@ -52,7 +51,7 @@ Page {
 
                 Label {
                     text: "Кролики 🐇:"
-                    font.pixelSize: Theme.fontSizeExtraSmall
+                    font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primaryColor
                 }
 
@@ -71,14 +70,14 @@ Page {
 
                 Label {
                     text: "Волки 🐺♂:"
-                    font.pixelSize: Theme.fontSizeExtraSmall
+                    font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primaryColor
                 }
 
                 Label {
                     id: wolfMaleCountLabel
                     text: "0"
-                    font.pixelSize: Theme.fontSizeLarge // Крупнее
+                    font.pixelSize: Theme.fontSizeLarge
                     color: "#8B4513" // Коричневый
                     font.bold: true
                 }
@@ -90,7 +89,7 @@ Page {
 
                 Label {
                     text: "Волчицы 🐺♀:"
-                    font.pixelSize: Theme.fontSizeExtraSmall
+                    font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primaryColor
                 }
 
@@ -109,7 +108,7 @@ Page {
 
                 Label {
                     text: "Всего:"
-                    font.pixelSize: Theme.fontSizeExtraSmall
+                    font.pixelSize: Theme.fontSizeSmall
                     color: Theme.primaryColor
                 }
 
@@ -172,21 +171,16 @@ Page {
         // Контейнер для сетки
         Grid {
         id: cellsGrid
-                //anchors.centerIn: parent
                 anchors.top: changeSpeed.bottom
                 rows: 14
                 columns: 10
                 spacing: 2
-                anchors.bottom: backButton.top //?
-                //anchors.bottomMargin: Theme.paddingLarge
+                anchors.bottom: backButton.top
 
                 property real cellSize: Math.min(
                     (parent.width - (columns - 1) * spacing) / columns,
                     (parent.height - (rows - 1) * spacing) / rows
                 )
-
-              //  property real startX: (parent.width - (columns * cellSize + (columns - 1) * spacing)) / 2
-              //  property real startY: (parent.height - (rows * cellSize + (rows - 1) * spacing)) / 2
 
                 Repeater {
                     model: cellsGrid.columns * cellsGrid.rows
@@ -213,17 +207,40 @@ Page {
                         property var animals: []
 
                         // Свойства для контроля популяции
-                        property int maxAnimals: Math.floor(cellsGrid.columns * cellsGrid.rows * 0.7) // 70% от всех клеток
+                        property int maxAnimals: Math.floor(cellsGrid.columns * cellsGrid.rows * 0.8) // 80% от всех клеток
                         property bool simulationStopped: false
                         property string stopReason: ""
+
+                        // История численности (максимум 400 точек)
+                        property var rabbitHistory: []
+                        property var wolfHistory: []
+
+                        // Функция сброса истории (вызывать при старте новой симуляции)
+                        function resetHistory() {
+                            rabbitHistory = []
+                            wolfHistory = []
+                        }
+
+                        // Функция записи текущего состояния
+                        function recordSnapshot() {
+                            rabbitHistory.push(countRabbits())
+                            wolfHistory.push(countMaleWolves() + countFemaleWolves())
+                            // Ограничиваем длину, чтобы не переполнить память
+                            if (rabbitHistory.length > 400) {
+                                rabbitHistory.shift()
+                                wolfHistory.shift()
+                            }
+                        }
 
                         function countTotalAnimals() {
                             return animals.length;
                         }
 
-                        // Функция проверки перенаселения
+                        // Функция проверки перенаселения или вымирания вида
                         function checkOverpopulation() {
                             var totalAnimals = countTotalAnimals();
+                            var rabbits = countRabbits()
+                            var wolves = countFemaleWolves() + countMaleWolves()
 
                             if (totalAnimals >= maxAnimals) {
                                 simulationStopped = true;
@@ -236,11 +253,17 @@ Page {
                             }
 
                             // Проверка на вымирание
-                            if (countRabbits() === 0 && (countMaleWolves() === 0 || countFemaleWolves() === 0)) {
+                            if (countRabbits() === 0 || (countMaleWolves() === 0 && countFemaleWolves() === 0)) {
                                 simulationStopped = true;
                                 stopPanel.visible = true;
                                 backButton.visible = false;
-                                stopReason = "Вымирание! Нет условий для продолжения симуляции";
+                                if (countRabbits() === 0) {
+                                    stopReason = "Вымирание кроликов! Осталось волков: " + wolves;
+                                }
+                                else {
+                                    stopReason = "Вымирание волков! Осталось кроликов: " + rabbits;
+                                }
+
                                 movementTimer.running = false;
                                 console.log("Симуляция остановлена: " + stopReason);
                                 return true;
@@ -248,12 +271,10 @@ Page {
 
                             return false;
                         }
-                    //
 
 
                         function createRabbit(x, y) {
                             console.log("Создаем кролика в позиции:", x, y);
-                            console.log("MaxX and MaxY", cellsGrid.columns, cellsGrid.rows);
                             var component = Qt.createComponent("../components/Rabbit.qml");
 
                             if (component.status === Component.Ready) {
@@ -270,7 +291,7 @@ Page {
                                 if (rabbit) {
                                     updateAnimalPosition(rabbit);
                                     animals.push(rabbit);
-                                    updateStats(); // Обновляем статистику
+                                    updateStats();
 
                                 } else {
                                     console.log("Ошибка: не удалось создать объект кролика");
@@ -299,7 +320,7 @@ Page {
                                 if (wolf) {
                                     updateAnimalPosition(wolf);
                                     animals.push(wolf);
-                                    updateStats(); // Обновляем статистику
+                                    updateStats();
                                     console.log("Волк ", gender, " создан");
                                 }
                                 return wolf;
@@ -335,7 +356,7 @@ Page {
                         }
 
                         // функция поедания зайцев волками
-                        function checkWolfEating() {
+                        function checkWolfChasing() {
                             var wolves = getAllWolves();
                             var rabbits = getAllRabbits();
                             var rabbitsEaten = [];
@@ -350,11 +371,11 @@ Page {
                                 for (var j = 0; j < rabbits.length; j++) {
                                     var rabbit = rabbits[j];
 
-                                    // Проверяем, являются ли соседями
+                                    // Проверяем, являются ли соседями важно!!!
                                     if (areNeighbors(wolf, rabbit)) {
                                         console.log("Волк рядом с зайцем:", wolf.x_pos, wolf.y_pos, "заяц:", rabbit.x_pos, rabbit.y_pos);
 
-                                        // НЕПОСРЕДСТВЕННО перемещаем волка на клетку зайца
+                                        // НЕПОСРЕДСТВЕННО перемещаем волка на клетку зайца так как он сосед!!
                                         wolf.x_pos = rabbit.x_pos;
                                         wolf.y_pos = rabbit.y_pos;
 
@@ -364,7 +385,8 @@ Page {
                                         // Обновляем позицию волка ВИЗУАЛЬНО
                                         updateAnimalPosition(wolf);
 
-                                        // Волк ест зайца
+                                        // Волк ест зайца это вынести отдельно и ест только если на одной клетке с ним, и ест до погони!!
+                                        // вот отсюда
                                         if (wolf.eatRabbit) {
                                             wolf.eatRabbit();
                                         }
@@ -374,6 +396,7 @@ Page {
 
                                         console.log("Волк съел зайца в клетке:", rabbit.x_pos, rabbit.y_pos);
                                         break; // Волк может съесть только одного зайца за ход
+                                        // до сюда
                                     }
                                 }
                             }
@@ -466,10 +489,20 @@ Page {
                                     // Проверяем, находятся ли в соседних клетках
                                     if (areNeighbors(female, male)) {
                                         if (Math.random() < 0.35) {
-                                            console.log("Волки размножаются!");
-                                            var newx = getRandomInt(1,10)
-                                            var newy = getRandomInt(1, 14)
-                                            newWolves.push({x: newx, y: newy});
+                                            console.log('female.x_pos - ', female.x_pos, ', male.x_pos - ', male.x_pos, ', cellsGrid.cellSize - ', cellsGrid.cellSize);
+                                            var pos = findRandomFreeSpot()
+                                            if (pos) {
+                                                var newx = pos.x
+                                                var newy = pos.y
+                                                newWolves.push({x: newx, y: newy});
+                                                console.log("Волки размножаются!");
+                                                showHeart((female.x_pos + male.x_pos) / 2 * (cellsGrid.cellSize + cellsGrid.spacing), (female.y_pos + male.y_pos) / 2 * (cellsGrid.cellSize + cellsGrid.spacing));
+
+                                            }
+                                            else {
+                                                console.log("Не удалось разместить нового волка, нет свободных клеток");
+                                            }
+
                                             break; // Одна волчица может размножиться только с одним волком за ход
 
                                         }
@@ -487,6 +520,35 @@ Page {
                                 }
                             }
                         }
+
+                        function showHeart(cellX, cellY) {
+                            // Создаём изображение сердечка
+                            var heart = Qt.createQmlObject(
+                                'import QtQuick 2.0; Image {' +
+                                '   source: "../images/heart.png";' +
+                                '   width: ' + cellsGrid.cellSize + ';' +
+                                '   height: ' + cellsGrid.cellSize + ';' +
+                                '   z: 10;' +
+                                '   opacity: 1;' +
+                                '   Behavior on opacity { NumberAnimation { duration: 200 } }' +
+                                '}',
+                                animalsContainer,
+                                "heartEffect"
+                            );
+
+                            // Позиционируем сердечко
+                            heart.x = cellX;
+                            heart.y = cellY;
+
+                            // Анимация исчезновения и удаление
+                            var deleteTimer = Qt.createQmlObject(
+                                'import QtQuick 2.0; Timer { interval: 1500; running: true; onTriggered: parent.destroy() }',
+                                heart,
+                                "heartTimer"
+                            );
+                            // Дополнительно: плавно уменьшаем прозрачность перед удалением
+                            heart.opacity = 0;
+                        }
                         function getRandomInt(min, max) {
                             min = Math.ceil(min);
                             max = Math.floor(max);
@@ -499,6 +561,8 @@ Page {
                             var dy = Math.abs(animal1.y_pos - animal2.y_pos);
                             return ((dx <= 1 && dy == 0) || (dx == 0 && dy <= 1));
                         }
+
+
 
                         // Функция для получения всех кроликов
                         function getAllRabbits() {
@@ -516,12 +580,10 @@ Page {
 
                         function updateAnimalPosition(animal) {
                             if (!animal) return;
-                            // Простая валидация координат
+                            // Валидация координат, чтобы животное не вышло за поле
                             animal.x_pos = Math.max(0, Math.min(animal.x_pos, cellsGrid.columns - 1));
                             animal.y_pos = Math.max(0, Math.min(animal.y_pos, cellsGrid.rows - 1));
 
-                            //animal.x = cellsGrid.startX + animal.x_pos * (cellsGrid.cellSize + cellsGrid.spacing);
-                            //animal.y = cellsGrid.startY + animal.y_pos * (cellsGrid.cellSize + cellsGrid.spacing);
                             animal.x = animal.x_pos * (cellsGrid.cellSize + cellsGrid.spacing);
                             animal.y = animal.y_pos * (cellsGrid.cellSize + cellsGrid.spacing);
 
@@ -573,7 +635,7 @@ Page {
                         // Таймер для движения
                         Timer {
                             id: movementTimer
-                            interval: 2000
+                            interval: 1000
                             running: true
                             repeat: true
                             onTriggered: {
@@ -587,9 +649,10 @@ Page {
 
 
                                 // Волки едят зайцев
-                                var rabsToKill = animalsContainer.checkWolfEating();
+                                // волки преследуют зайцев
+                                var rabsToKill = animalsContainer.checkWolfChasing();
 
-                                // чуваки двигаются
+                                // звери двигаются
                                 for (var i = 0; i < animalsContainer.animals.length; i++) {
                                     var animal = animalsContainer.animals[i];
 
@@ -602,6 +665,9 @@ Page {
 
                                     if (animal && animal.move) {
                                         if (animal.move()) {
+                                            // тут для кролика проверить не занята ли animal.x_pos и animal.y_pos,
+                                            //если занята волком, то заново вызывать функцию
+                                            //чтобы найти свободную координату, или стоять на месте?
                                             animalsContainer.updateAnimalPosition(animal);
                                         }
                                     }
@@ -619,6 +685,9 @@ Page {
 
                                 // Обновляем счетчики
                                 animalsContainer.updateStats();
+
+                                // Записываем данные для графиков
+                                animalsContainer.recordSnapshot();
 
                                 // Проверяем условия остановки
                                 if (animalsContainer.checkOverpopulation()) {
@@ -685,6 +754,7 @@ Page {
                         }
 
                         function createInitialAnimals() {
+                            resetHistory();
                             console.log("Создаем начальных животных:",
                                        initialRabbits, "кроликов,",
                                        initialMaleWolves, "волков-самцов,",
@@ -754,10 +824,9 @@ Page {
 
                         Component.onCompleted: {
                             console.log("Animals container готов");
-
-
-                                    createInitialAnimals();
-                                    updateStats();
+                            createInitialAnimals();
+                            updateStats();
+                            resetHistory();
                         }
                     }
 
@@ -773,20 +842,22 @@ Page {
                 bottom: parent.bottom
                 margins: Theme.paddingMedium
             }
-            height: Theme.itemSizeLarge
+            height: Theme.itemSizeLarge * 1.5
             color: Theme.rgba(Theme.highlightBackgroundColor, 0.95)
             radius: Theme.paddingMedium
             visible: animalsContainer.simulationStopped // Привязываемся к свойству animalsContainer
 
             Row {
                 anchors {
-                    verticalCenter: parent.verticalCenter
-                    left: parent.left
-                    leftMargin: Theme.paddingMedium
-                    right: parent.right
-                    rightMargin: Theme.paddingMedium
+//                    verticalCenter: parent.verticalCenter
+//                    left: parent.left
+//                    leftMargin: Theme.paddingMedium
+//                    right: parent.right
+//                    rightMargin: Theme.paddingMedium
+                    fill: parent
+                    margins: Theme.paddingSmall
                 }
-                spacing: Theme.paddingMedium
+                spacing: Theme.paddingSmall //medium
 
                 // Иконка предупреждения
                 Icon {
@@ -799,8 +870,10 @@ Page {
 
                 // Текстовый блок
                 Column {
-                    width: parent.width - (Theme.iconSizeMedium + Theme.paddingMedium * 3 + okButton.width)
+                    //width: parent.width - (Theme.iconSizeMedium + Theme.paddingMedium * 3 + okButton.width)
                     spacing: Theme.paddingSmall
+                    width: parent.width - (Theme.iconSizeMedium + Theme.paddingMedium * 3 + 2 * Theme.itemSizeMedium)
+                    anchors.verticalCenter: parent.verticalCenter
 
                     Label {
                         width: parent.width
@@ -822,6 +895,20 @@ Page {
                         horizontalAlignment: Text.AlignLeft
                     }
                 }
+
+                // Кнопка "График"
+                    Button {
+                        text: "График"
+                        width: Theme.itemSizeMedium
+                        anchors.verticalCenter: parent.verticalCenter
+                        onClicked: {
+                            var dialog = graphDialogComponent.createObject(simulationPage, {
+                                rabbitData: animalsContainer.rabbitHistory,
+                                wolfData: animalsContainer.wolfHistory
+                            })
+                            dialog.open()
+                        }
+                    }
 
                 // Кнопка OK
                 Button {
@@ -851,5 +938,170 @@ Page {
     Component.onCompleted: {
         console.log("SimulationPage загружена");
 
+    }
+
+    /// далее код для графиков
+
+    Component {
+        id: graphDialogComponent
+
+        Dialog {
+            id: graphDialog
+            //title: "Динамика популяции"
+
+            property variant rabbitData: []
+            property variant wolfData: []
+
+            canAccept: false  // Убираем кнопку ОК, оставляем только кнопку закрытия
+
+            // Поиск максимального значения для масштабирования
+            function getMaxValue() {
+                var max = 0
+                for (var i = 0; i < rabbitData.length; i++) {
+                    if (rabbitData[i] > max) max = rabbitData[i]
+                    if (wolfData[i] > max) max = wolfData[i]
+                }
+                return max === 0 ? 1 : max
+            }
+
+            Column {
+                width: parent.width
+                spacing: Theme.paddingMedium
+                //padding: Theme.paddingMedium
+
+                Label {
+                    text: "Динамика популяции"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.secondaryColor
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Rectangle {
+                    id: graphArea
+                    width: parent.width - 2 * Theme.paddingMedium
+                    height: 300
+                    color: "white"
+                    border.color: Theme.primaryColor
+                    border.width: 1
+                    radius: 5
+
+                    Canvas {
+                        id: canvas
+                        anchors.fill: parent
+
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.reset()
+                            ctx.clearRect(0, 0, width, height)
+
+                            var dataR = graphDialog.rabbitData
+                            var dataW = graphDialog.wolfData
+                            if (dataR.length === 0) return
+
+                            var maxVal = graphDialog.getMaxValue()
+                            var stepX = width / (dataR.length - 1)
+                            var h = height
+
+                            // Рисуем оси
+                            //ctx.strokeStyle = Theme.primaryColor
+                            ctx.strokeStyle = "black"
+                            ctx.fillStyle = "black"
+                            ctx.lineWidth = 1
+                            ctx.beginPath()
+                            ctx.moveTo(0, h)
+                            ctx.lineTo(width, h)
+                            ctx.moveTo(0, 0)
+                            ctx.lineTo(0, h)
+                            ctx.stroke()
+
+                            // Рисуем горизонтальные линии сетки
+                            ctx.beginPath()
+                            ctx.strokeStyle = "#cccccc"
+                            ctx.lineWidth = 0.5
+                            for (var val = 1; val <= 5; val++) {
+                                var y = h - (val * maxVal / 5) / maxVal * h
+                                ctx.moveTo(0, y)
+                                ctx.lineTo(width, y)
+                                ctx.stroke()
+                            }
+                            // Рисуем линию кроликов (зелёная)
+                            ctx.beginPath()
+                            ctx.strokeStyle = "#2E8B57"
+                            ctx.lineWidth = 2
+                            var first = true
+                            for (var i = 0; i < dataR.length; i++) {
+                                var x = i * stepX
+                                var y = h - (dataR[i] / maxVal) * h
+                                if (first) {
+                                    ctx.moveTo(x, y)
+                                    first = false
+                                } else {
+                                    ctx.lineTo(x, y)
+                                }
+                            }
+                            ctx.stroke()
+
+                            // Рисуем линию волков (красная)
+                            ctx.beginPath()
+                            ctx.strokeStyle = "#CD5C5C"
+                            ctx.lineWidth = 2
+                            first = true
+                            for (i = 0; i < dataW.length; i++) {
+                                x = i * stepX
+                                y = h - (dataW[i] / maxVal) * h
+                                if (first) {
+                                    ctx.moveTo(x, y)
+                                    first = false
+                                } else {
+                                    ctx.lineTo(x, y)
+                                }
+                            }
+                            ctx.stroke()
+
+                            // Подписи значений (минимум/максимум)
+                            ctx.fillStyle = "black"
+                            ctx.font = "30px sans-serif"
+                            ctx.fillText("0", 2, h - 2)
+                            ctx.fillText(maxVal, 2, 30)
+                            //ctx.fillText("Время:" + dataR.length, width - 160, h - 2)
+                        }
+                    }
+                }
+                // Легенда
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: Theme.paddingMedium
+
+                    Rectangle {
+                          width: Theme.iconSizeSmall
+                          height: 2
+                          color: "#2E8B57"
+                          anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Label {
+                         text: "Кролики"
+                         font.pixelSize: Theme.fontSizeSmall
+                         color: Theme.primaryColor
+                    }
+                    Rectangle {
+                         width: Theme.iconSizeSmall
+                         height: 2
+                         color: "#CD5C5C"
+                         anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Label {
+                        text: "Волки"
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.primaryColor
+                    }
+                }
+
+                Button {
+                    text: "Закрыть"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    onClicked: graphDialog.close()
+                }
+            }
+        }
     }
 }

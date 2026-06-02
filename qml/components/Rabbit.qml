@@ -5,7 +5,7 @@ Animal {
     id: rabbit
 
     Component.onCompleted: {
-        imageSource = "../images/rabbit.png";
+        imageSource = "../images/littlerabbit.png";
     }
 
     // Метод размножения

@@ -27,5 +27,4 @@ TRANSLATIONS += \
 
 OTHER_FILES += \
     qml/components/Animal.qml \
-    qml/components/Rabbit.qml \
-    qml/images/rabbit.png
+    qml/components/Rabbit.qml

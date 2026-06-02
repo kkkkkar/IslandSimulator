@@ -56,13 +56,13 @@ Page {
         Rectangle {
             width: parent.width
             height: Theme.itemSizeSmall
-            color: Theme.rgba(Theme.secondaryHighlightColor, 0.3)
-            radius: Theme.paddingSmall
+            color: Theme.rgba(Theme.secondaryHighlightColor, 0.5)
+            radius: Theme.paddingLarge
 
             Label {
                 anchors.centerIn: parent
                 text: "Остров: 10×14 клеток (макс: 42 животных)"
-                font.pixelSize: Theme.fontSizeTiny
+                font.pixelSize: Theme.fontSizeLarge
                 color: Theme.secondaryColor
             }
         }
@@ -141,7 +141,7 @@ Page {
             width: parent.width
             height: Theme.itemSizeSmall
             color: Theme.rgba(Theme.highlightBackgroundColor, 0.5)
-            radius: Theme.paddingSmall
+            radius: Theme.paddingLarge
 
             Label {
                 id: totalCountPreview
