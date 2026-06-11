@@ -207,11 +207,11 @@ Page {
                         property var animals: []
 
                         // Свойства для контроля популяции
-                        property int maxAnimals: Math.floor(cellsGrid.columns * cellsGrid.rows * 0.8) // 80% от всех клеток
+                        property int maxAnimals: Math.floor(cellsGrid.columns * cellsGrid.rows * 0.9) // 90% от всех клеток
                         property bool simulationStopped: false
                         property string stopReason: ""
 
-                        // История численности (максимум 400 точек)
+                        // История численности (максимум 500 точек)
                         property var rabbitHistory: []
                         property var wolfHistory: []
 
@@ -226,7 +226,7 @@ Page {
                             rabbitHistory.push(countRabbits())
                             wolfHistory.push(countMaleWolves() + countFemaleWolves())
                             // Ограничиваем длину, чтобы не переполнить память
-                            if (rabbitHistory.length > 400) {
+                            if (rabbitHistory.length > 500) {
                                 rabbitHistory.shift()
                                 wolfHistory.shift()
                             }
@@ -355,109 +355,72 @@ Page {
                             return wolves;
                         }
 
-                        // функция поедания зайцев волками
                         function checkWolfChasing() {
                             var wolves = getAllWolves();
                             var rabbits = getAllRabbits();
-                            var rabbitsEaten = [];
+                            var rabbitsToEat = [];   // массив объектов кроликов, которых нужно съесть
 
                             for (var i = 0; i < wolves.length; i++) {
                                 var wolf = wolves[i];
-
-                                // Проверяем, жив ли волк
                                 if (!wolf.isAlive) continue;
 
-                                // Ищем зайца рядом
                                 for (var j = 0; j < rabbits.length; j++) {
                                     var rabbit = rabbits[j];
+                                    if (!rabbit) continue;
 
-                                    // Проверяем, являются ли соседями важно!!!
                                     if (areNeighbors(wolf, rabbit)) {
-                                        console.log("Волк рядом с зайцем:", wolf.x_pos, wolf.y_pos, "заяц:", rabbit.x_pos, rabbit.y_pos);
-
-                                        // НЕПОСРЕДСТВЕННО перемещаем волка на клетку зайца так как он сосед!!
                                         wolf.x_pos = rabbit.x_pos;
                                         wolf.y_pos = rabbit.y_pos;
-
-                                        // Устанавливаем флаг, что волк уже сделал ход
                                         wolf.hasMovedForEating = true;
-
-                                        // Обновляем позицию волка ВИЗУАЛЬНО
                                         updateAnimalPosition(wolf);
+                                        if (wolf.eatRabbit) wolf.eatRabbit();
 
-                                        // Волк ест зайца это вынести отдельно и ест только если на одной клетке с ним, и ест до погони!!
-                                        // вот отсюда
-                                        if (wolf.eatRabbit) {
-                                            wolf.eatRabbit();
+                                        if (rabbitsToEat.indexOf(rabbit) === -1) {
+                                            rabbitsToEat.push(rabbit);
                                         }
-
-                                        // Помечаем зайца на удаление
-                                        rabbitsEaten.push(j);
-
-                                        console.log("Волк съел зайца в клетке:", rabbit.x_pos, rabbit.y_pos);
-                                        break; // Волк может съесть только одного зайца за ход
-                                        // до сюда
+                                        break;   // волк съедает только одного кролика за ход
                                     }
                                 }
                             }
-                            return rabbitsEaten;
+                            return rabbitsToEat;
                         }
 
-                        // Функция удаления съеденных зайцев
-                        function removeEatenRabbits(rabbitIndices) {
-                            // Сортируем индексы по убыванию для правильного удаления
-                            rabbitIndices.sort(function(a, b) { return b - a; });
-
-                            for (var i = 0; i < rabbitIndices.length; i++) {
-                                var index = rabbitIndices[i];
-                                if (index >= 0 && index < getAllRabbits().length) {
-                                    var rabbits = getAllRabbits();
-                                    var globalIndex = findAnimalIndex(rabbits[index]);
-
-                                    if (globalIndex !== -1) {
-                                        var rabbit = animals[globalIndex];
-                                        if (rabbit) {
-                                            rabbit.destroy(); // Удаляем визуально
-                                        }
-                                        animals.splice(globalIndex, 1); // Удаляем из массива
-                                    }
-                                }
-                            }
-                        }
-
-                        // Функция уменьшения времени жизни у волков
-                        function decreaseWolfLifetimes() {
-                            var wolves = getAllWolves();
-                            var deadWolves = [];
-
-                            for (var i = 0; i < wolves.length; i++) {
-                                var wolf = wolves[i];
-                                if (wolf.decreaseLifetime && wolf.decreaseLifetime()) {
-                                    // Волк умер
-                                    deadWolves.push(i);
-                                    console.log("Волк умер от старости");
-                                }
-                            }
-
-                            // Удаляем умерших волков
-                            removeDeadWolves(deadWolves);
-                        }
-
-                        // Функция удаления умерших волков
-                        function removeDeadWolves(wolfIndices) {
-                            wolfIndices.sort(function(a, b) { return b - a; });
-
-                            for (var i = 0; i < wolfIndices.length; i++) {
-                                var index = wolfIndices[i];
-                                if (index >= 0 && index < animals.length) {
-                                    var wolf = animals[index];
-                                    if (wolf) {
-                                        wolf.destroy();
-                                    }
+                        function removeEatenRabbits(rabbitsToEat) {
+                            for (var i = 0; i < rabbitsToEat.length; i++) {
+                                var rabbit = rabbitsToEat[i];
+                                var index = animals.indexOf(rabbit);
+                                if (index !== -1) {
+                                    rabbit.destroy();
                                     animals.splice(index, 1);
                                 }
                             }
                         }
+                        // Функция уменьшения времени жизни у волков
+                        function decreaseWolfLifetimes() {
+                            var wolves = getAllWolves();
+                            var deadWolves = [];
+                            for (var i = 0; i < wolves.length; i++) {
+                                var wolf = wolves[i];
+                                if (wolf.decreaseLifetime && wolf.decreaseLifetime()) {
+                                    deadWolves.push(wolf);           // сохраняем объект
+                                    console.log("Волк умер от старости");
+                                }
+                            }
+                            removeDeadWolves(deadWolves);
+                        }
+                        // Функция удаления умерших волков
+                        function removeDeadWolves(deadWolves) {
+                            for (var i = 0; i < deadWolves.length; i++) {
+                                var wolf = deadWolves[i];
+                                var index = animals.indexOf(wolf);   // ищем индекс в общем массиве
+                                if (index !== -1) {
+                                    wolf.destroy();
+                                    animals.splice(index, 1);
+                                }
+                            }
+                        }
+
+
                         // Вспомогательная функция для поиска индекса животного в общем массиве
                         function findAnimalIndex(animalToFind) {
                             for (var i = 0; i < animals.length; i++) {
@@ -488,7 +451,7 @@ Page {
 
                                     // Проверяем, находятся ли в соседних клетках
                                     if (areNeighbors(female, male)) {
-                                        if (Math.random() < 0.35) {
+                                        if (Math.random() < 0.7) {
                                             console.log('female.x_pos - ', female.x_pos, ', male.x_pos - ', male.x_pos, ', cellsGrid.cellSize - ', cellsGrid.cellSize);
                                             var pos = findRandomFreeSpot()
                                             if (pos) {
@@ -870,7 +833,6 @@ Page {
 
                 // Текстовый блок
                 Column {
-                    //width: parent.width - (Theme.iconSizeMedium + Theme.paddingMedium * 3 + okButton.width)
                     spacing: Theme.paddingSmall
                     width: parent.width - (Theme.iconSizeMedium + Theme.paddingMedium * 3 + 2 * Theme.itemSizeMedium)
                     anchors.verticalCenter: parent.verticalCenter

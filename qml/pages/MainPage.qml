@@ -9,6 +9,8 @@ Page {
         title: "Симулятор Острова"
     }
 
+    property int maxCells: 140; // 10x14 клеток
+
     // Функция для проверки валидности ввода
     function validateInput() {
         // Проверяем, что элементы уже созданы
@@ -19,7 +21,7 @@ Page {
         var maleWolves = parseInt(wolfMaleInput.text) || 0;
         var femaleWolves = parseInt(wolfFemaleInput.text) || 0;
         var total = rabbits + maleWolves + femaleWolves;
-        var maxCells = 140; // 10x14 клеток
+        //var maxCells = 140; // 10x14 клеток
 
         if (total === 0) {
             errorLabel.text = "Добавьте хотя бы одного животного!";
@@ -61,7 +63,7 @@ Page {
 
             Label {
                 anchors.centerIn: parent
-                text: "Остров: 10×14 клеток (макс: 42 животных)"
+                text: "Остров: 10×14 клеток (макс: " + Math.floor(maxCells * 0.3) +" животных)"
                 font.pixelSize: Theme.fontSizeLarge
                 color: Theme.secondaryColor
             }
@@ -81,7 +83,7 @@ Page {
             TextField {
                 id: rabbitInput
                 width: parent.width
-                placeholderText: "Введите число (0-20)"
+                placeholderText: "Введите число (рекомендовано 0-20)"
                 inputMethodHints: Qt.ImhDigitsOnly
                 validator: IntValidator { bottom: 0; top: 20 }
                 text: "4"
@@ -104,7 +106,7 @@ Page {
             TextField {
                 id: wolfMaleInput
                 width: parent.width
-                placeholderText: "Введите число (0-10)"
+                placeholderText: "Введите число (рекомендовано 0-10)"
                 inputMethodHints: Qt.ImhDigitsOnly
                 validator: IntValidator { bottom: 0; top: 10 }
                 text: "2"
@@ -127,7 +129,7 @@ Page {
             TextField {
                 id: wolfFemaleInput
                 width: parent.width
-                placeholderText: "Введите число (0-10)"
+                placeholderText: "Введите число (рекомендовано 0-10)"
                 inputMethodHints: Qt.ImhDigitsOnly
                 validator: IntValidator { bottom: 0; top: 10 }
                 text: "2"
@@ -153,7 +155,7 @@ Page {
                     var total = (parseInt(rabbitInput.text) || 0) +
                                 (parseInt(wolfMaleInput.text) || 0) +
                                 (parseInt(wolfFemaleInput.text) || 0);
-                    text = "Всего животных: " + total + "/42";
+                    text = "Всего животных: " + total + "/" + Math.floor(maxCells * 0.3);
                 }
 
                 Component.onCompleted: updateText()

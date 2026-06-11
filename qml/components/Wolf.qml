@@ -4,7 +4,7 @@ Animal {
     id: wolf
 
     property string gender: "not defined"
-    property int lifetime: 20
+    property int lifetime: 12
     property bool isAlive: true
     //property var targetRabbit: null // Цель для преследования
     //property bool isRunningAfterRabbit: false
@@ -32,7 +32,7 @@ Animal {
 
     // Волк поедает зайца и получает +5 к жизни
         function eatRabbit() {
-            lifetime += 5;
+            lifetime += 4;
             console.log("Волк съел зайца! кол-во очков:", lifetime);
         }
 

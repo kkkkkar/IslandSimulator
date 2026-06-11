@@ -17,6 +17,7 @@ Page {
 
             PageHeader {
                 objectName: "pageHeader"
+                //anchors { horizontalAlignment: Text.AlignRight }
                 title: qsTr("About Application")
             }
 
