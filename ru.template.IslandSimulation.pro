@@ -11,10 +11,7 @@ SOURCES += \
 HEADERS += \
 
 DISTFILES += \
-    ../../Desktop/фотки для питона/для авроры/18200651-middle1.png \
-    ../../Desktop/фотки для питона/для авроры/18200651-middle1.png \
     .gitignore \
-    qml/components/Wolf.qml \
     rpm/ru.template.IslandSimulation.spec \
 
 AURORAAPP_ICONS = 86x86 108x108 128x128 172x172
